@@ -136,13 +136,23 @@ def graphique2(df, patho1, dept=["999"], region=[99], annee_sel=2022):
 # ---------------------------
 # Graphique 3
 # ---------------------------
-def graphique3(df, patho1, annee_sel=2022):
+def graphique3(df, patho1, dept=["999"], region=[99],annee_sel=2022):
     """
     Camembert H/F pour une pathologie et une année.
     """
     # Filtrer les données et convertir Ntop
-    df_filtered = df[(df["patho_niv1"] == patho1) & (df["annee"] == annee_sel)]
-    df_filtered["Ntop"] = pd.to_numeric(df_filtered["Ntop"], errors="coerce")
+    df_reduit = df[["annee", "patho_niv1", "dept", "region", "libelle_classe_age", "sexe", "Ntop"]].copy()
+    df_reduit["Ntop"] = pd.to_numeric(df_reduit["Ntop"], errors="coerce")
+    
+    df_filtered = df_reduit[
+        (df_reduit["patho_niv1"] == patho1) &
+        (df_reduit["dept"].isin(dept)) &
+        (df_reduit["region"].isin(region)) &
+        (df_reduit["Ntop"].notna()) &
+        (df_reduit["Ntop"] != "PSY_CAT_CAT") &
+        (df_reduit["libelle_classe_age"] != "tous âges") &
+        (df_reduit["annee"] == annee_sel)
+    ]
 
     # Totaux par sexe
     hommes = df_filtered[df_filtered["sexe"] == 1]["Ntop"].sum()
