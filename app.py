@@ -61,7 +61,7 @@ col3, col4 = st.columns([3, 3], gap="medium")
 with col3:
     st.plotly_chart(graphique3(df_graph, patho1), use_container_width=True)
 with col4:
-    st.plotly_chart(graphique4(df_graph), use_container_width=True)
+    st.plotly_chart(graphique4(df_graph, patho1), use_container_width=True)
 
 # Grand graphique plein écran
 st.subheader("Grand graphique de synthèse")

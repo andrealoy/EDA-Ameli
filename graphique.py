@@ -171,18 +171,53 @@ def graphique3(df, patho1, dept=["999"], region=[99],annee_sel=2022):
 # ---------------------------
 # Graphique 4
 # ---------------------------
-def graphique4(df):
-    if df.empty:
-        return px.scatter(title="Aucune donnée disponible pour Graphique 4")
-    fig = px.line(
-        df.groupby("annee")["prev"].median().reset_index(),
-        x="annee",
-        y="prev",
-        markers=True,
-        title="Graphique 4",
-        labels={"prev": "Prévalence médiane", "annee": "Année"}
+def graphique4(df, patho1, dept=["999"], region=[99], annee_sel=2022):
+    """
+    Histogramme des patho_niv2 (en abscisse) avec somme de Ntop (en ordonnée)
+    pour une pathologie de niveau 1, une année et des filtres géographiques.
+    """
+
+    # --- Correction du slice de colonnes ---
+    colonnes = ["annee",  "patho_niv1", "patho_niv2", "dept", "region", "libelle_classe_age",  "sexe", "Ntop"
+    ]
+    df_reduit = df[colonnes].copy()
+
+    # --- Conversion Ntop en numérique ---
+    df_reduit["Ntop"] = pd.to_numeric(df_reduit["Ntop"], errors="coerce")
+
+    # --- Filtres ---
+    df_filtered = df_reduit[
+        (df_reduit["patho_niv1"] == patho1) &
+        (df_reduit["dept"].isin(dept)) &
+        (df_reduit["region"].isin(region)) &
+        (df_reduit["Ntop"].notna()) &
+        (df_reduit["patho_niv2"].notna()) & 
+        (df_reduit["patho_niv2"] != "") & 
+        (df_reduit["patho_niv2"].str.lower() != "nan") & 
+        (df_reduit["libelle_classe_age"] != "tous âges") &
+        (df_reduit["annee"] == annee_sel)
+      
+    ].copy()
+
+    # --- Regroupement par patho_niv2 ---
+    df_grouped = (
+        
+        df_filtered.groupby("patho_niv2", as_index=False)
+        .agg({"Ntop": "sum"})
+        .sort_values(by="Ntop", ascending=False)
     )
-    fig.update_layout(template="plotly_white")
+
+    # --- Histogramme Plotly ---
+    fig = px.bar(
+        df_grouped,
+        x="patho_niv2",
+        y="Ntop",
+        labels={"patho_niv2": "Pathologie niveau 2", "Ntop": "Nombre de cas"},
+        title=f"Somme de Ntop par patho_niv2 – {patho1} ({annee_sel})"
+    )
+
+    fig.update_layout(xaxis_tickangle=45)
+
     return fig
 
 # ---------------------------
@@ -203,3 +238,10 @@ def graphique_grand(df, patho1):
     )
     fig.update_layout(template="plotly_white")
     return fig
+
+
+
+
+
+
+
