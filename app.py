@@ -16,6 +16,7 @@ def load_data():
 df = load_data()
 st.set_page_config(layout="wide")
 
+
 # ---------------------------
 # Selectbox unique pour patho1
 # ---------------------------
@@ -61,6 +62,23 @@ patho2 = st.multiselect("Choisir une ou plusieurs sous-pathologies (niv2)", sous
 
 if patho2:
     df_graph2 = df_graph2[df_graph2["patho_niv2"].isin(patho2)]
+
+# ---------------------------
+# Slider année à côté du titre
+# ---------------------------
+annees_disponibles = sorted(df["annee"].unique())
+col_title, col_slider = st.columns([3, 1])
+with col_title:
+    st.markdown("### Visualisation prévalence par sexe et année")
+with col_slider:
+    annee_selectionnee = st.slider(
+        "",
+        min_value=int(min(annees_disponibles)),
+        max_value=int(max(annees_disponibles)),
+        value=int(max(annees_disponibles)),
+        step=1
+    )
+
 
 # ---------------------------
 # Vérification des données
