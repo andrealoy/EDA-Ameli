@@ -117,7 +117,7 @@ def graphique2(df, patho1, dept=["999"], region=[99], annee_sel=2022):
     ))
 
     fig.update_layout(
-        title=f"Pyramide des âges pour {"".join(patho1)} en {annee_sel}",
+        title=f"Pyramide des âges pour {''.join(patho1)} en {annee_sel}",
         barmode='relative',
         xaxis=dict(
             tickvals=np.arange(-xlim, xlim+1, step=int(xlim/5)),
