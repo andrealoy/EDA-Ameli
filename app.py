@@ -17,6 +17,13 @@ df = load_data()
 st.set_page_config(layout="wide")
 
 # ---------------------------
+# Tire et zone de texte
+# ---------------------------
+st.header("Analyse des pathologies")
+st.write("""L’application permet de sélectionner une pathologie principale (niv1) ainsi que ses sous-pathologies (niv2), puis affiche les données sous forme de graphiques interactifs par sexe et par année. Elle facilite ainsi l’exploration et la synthèse des pathologies, offrant un suivi rapide et clair des tendances et prévalences en France entre 2015 et 2023.""")
+
+
+# ---------------------------
 # Selectbox unique pour patho1
 # ---------------------------
 toutes_les_pathos = sorted(df["patho_niv1"].dropna().unique())
@@ -57,7 +64,7 @@ df_graph2 = df[df["patho_niv1"] == patho1]
 
 # Sélection patho2 simplifié
 sous_pathos_disponibles = sorted(df_graph2["patho_niv2_simplifie"].dropna().unique())
-patho2 = st.multiselect("Choisir une ou plusieurs sous-pathologies (niv2 simplifié)", sous_pathos_disponibles)
+patho2 = st.multiselect("Choisir une ou plusieurs sous-pathologies (niv2)", sous_pathos_disponibles)
 
 if patho2:
     df_graph2 = df_graph2[df_graph2["patho_niv2_simplifie"].isin(patho2)]
@@ -73,7 +80,6 @@ else:
 # ---------------------------
 # Affichage des graphiques
 # ---------------------------
-st.header("Visualisation prévalence par sexe et année")
 
 col1, col2 = st.columns([3, 3], gap="medium")
 with col1:
