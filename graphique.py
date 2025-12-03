@@ -13,10 +13,11 @@ def graphique1(df, patho1, age=["tous âges"], dept=["999"], region=[99]):
     - Axe Y : prévalence
     - Trois courbes : Total (9), Hommes (1), Femmes (2)
     """
+
     # Filtrer df pour patho1 et top se terminant par _CAT_CAT
     df_graph = df[
         (df["patho_niv1"] == patho1) &
-        (df["top"].str.endswith("_CAT_CAT", na=False)) &
+        (df["top"].str.endswith(("_CAT_CAT", "_CAT_EXC","_CAT_INC"), na=False)) &
         (df["libelle_classe_age"].isin(age)) &
         (df["dept"].isin(dept)) &
         (df["region"].isin(region))
