@@ -16,6 +16,22 @@ def load_data():
 df = load_data()
 st.set_page_config(layout="wide")
 
+# ---------------------------
+# Slider année à côté du titre
+# ---------------------------
+annees_disponibles = sorted(df["annee"].unique())
+col_title, col_slider = st.columns([3, 1])
+with col_title:
+    st.markdown("### Visualisation prévalence par sexe et année")
+with col_slider:
+    annee_selectionnee = st.slider(
+        "",
+        min_value=int(min(annees_disponibles)),
+        max_value=int(max(annees_disponibles)),
+        value=int(max(annees_disponibles)),
+        step=1
+    )
+
 
 # ---------------------------
 # Selectbox unique pour patho1
@@ -63,21 +79,6 @@ patho2 = st.multiselect("Choisir une ou plusieurs sous-pathologies (niv2)", sous
 if patho2:
     df_graph2 = df_graph2[df_graph2["patho_niv2"].isin(patho2)]
 
-# ---------------------------
-# Slider année à côté du titre
-# ---------------------------
-annees_disponibles = sorted(df["annee"].unique())
-col_title, col_slider = st.columns([3, 1])
-with col_title:
-    st.markdown("### Visualisation prévalence par sexe et année")
-with col_slider:
-    annee_selectionnee = st.slider(
-        "",
-        min_value=int(min(annees_disponibles)),
-        max_value=int(max(annees_disponibles)),
-        value=int(max(annees_disponibles)),
-        step=1
-    )
 
 
 # ---------------------------
@@ -91,8 +92,6 @@ else:
 # ---------------------------
 # Affichage des graphiques
 # ---------------------------
-st.header("Visualisation prévalence par sexe et année")
-
 col1, col2 = st.columns([3, 3], gap="medium")
 with col1:
     st.plotly_chart(graphique1(df_graph1, patho1_a_afficher_graph1), use_container_width=True)  # figée patho2
