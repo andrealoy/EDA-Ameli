@@ -2,47 +2,96 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+from scipy.stats import linregress
 
-# ---------------------------
+# ---------------------------------------------------------
+# Fonction : Régression linéaire + significativité
+# ---------------------------------------------------------
+def analyse_tendance(df, year_col="annee", value_col="prev"):
+    """
+    Retourne la pente, p-value, % variation et si la tendance est significative.
+    Ne trace rien (full backend).
+    """
+    if df.empty:
+        return {"slope": np.nan, "p_value": np.nan, "significant": False, "variation_pct": np.nan}
+
+    df_year = df.groupby(year_col)[value_col].sum().reset_index().sort_values(year_col)
+
+    years = df_year[year_col].astype(float).values
+    values = df_year[value_col].astype(float).values
+
+    if len(years) < 2:
+        return {"slope": np.nan, "p_value": np.nan, "significant": False, "variation_pct": np.nan}
+
+    res = linregress(years, values)
+    slope, p_value = res.slope, res.pvalue
+    variation_pct = (values[-1] - values[0]) / values[0] * 100 if values[0] != 0 else np.nan
+
+    significant = (p_value < 0.05) and (slope > 0)
+
+    return {
+        "slope": slope,
+        "p_value": p_value,
+        "significant": significant,
+        "variation_pct": variation_pct
+    }
+
+
+# ---------------------------------------------------------
 # Graphique 1 : évolution de la prévalence
-# ---------------------------
+# ---------------------------------------------------------
 def graphique1(df, patho1, age=["tous âges"], dept=["999"], region=[99]):
     """
-    Graphique interactif avec Plotly : Évolution de la prévalence par sexe pour patho1
-    - Axe X : année
-    - Axe Y : prévalence
-    - Trois courbes : Total (9), Hommes (1), Femmes (2)
+    Graphique Plotly : Évolution de la prévalence par sexe
+    - 3 courbes (Total, Hommes, Femmes)
+    - Intègre analyse_tendance pour détecter augmentation significative
     """
 
-    # Filtrer df pour patho1 et top se terminant par _CAT_CAT
+    # Filtre
     df_graph = df[
         (df["patho_niv1"] == patho1) &
-        (df["top"].str.endswith(("_CAT_CAT", "_CAT_EXC","_CAT_INC"), na=False)) &
+        (df["top"].str.endswith(("_CAT_CAT", "_CAT_EXC", "_CAT_INC"), na=False)) &
         (df["libelle_classe_age"].isin(age)) &
         (df["dept"].isin(dept)) &
         (df["region"].isin(region))
     ]
 
-    # Sécurité si df vide
     if df_graph.empty:
         return px.scatter(title=f"Aucune donnée disponible pour {patho1}")
 
-    # Calcul des séries par sexe
-    def somme_ntop_par_annee(df_sex):
+    # ---- Séries par sexe ----------------------------------------------------
+    def somme_par_annee(df_sex):
         return df_sex.groupby("annee")["prev"].sum()
 
-    serie_sexe9 = somme_ntop_par_annee(df_graph[df_graph["sexe"] == 9])
-    serie_hommes = somme_ntop_par_annee(df_graph[df_graph["sexe"] == 1])
-    serie_femmes = somme_ntop_par_annee(df_graph[df_graph["sexe"] == 2])
+    serie_total  = somme_par_annee(df_graph[df_graph["sexe"] == 9])
+    serie_hommes = somme_par_annee(df_graph[df_graph["sexe"] == 1])
+    serie_femmes = somme_par_annee(df_graph[df_graph["sexe"] == 2])
 
-    # Reconstituer un DataFrame long pour Plotly
+    # ---- Préparer df long pour plotly ---------------------------------------
     df_plot = pd.concat([
-        pd.DataFrame({"annee": serie_sexe9.index, "prev": serie_sexe9.values, "Sexe": "Total"}),
+        pd.DataFrame({"annee": serie_total.index,  "prev": serie_total.values,  "Sexe": "Total"}),
         pd.DataFrame({"annee": serie_hommes.index, "prev": serie_hommes.values, "Sexe": "Hommes"}),
         pd.DataFrame({"annee": serie_femmes.index, "prev": serie_femmes.values, "Sexe": "Femmes"})
     ])
 
-    # Créer graphique interactif avec Plotly
+    # ---- Analyse des tendances ----------------------------------------------
+    stats_total  = analyse_tendance(df_plot[df_plot["Sexe"] == "Total"])
+    stats_hommes = analyse_tendance(df_plot[df_plot["Sexe"] == "Hommes"])
+    stats_femmes = analyse_tendance(df_plot[df_plot["Sexe"] == "Femmes"])
+
+    # Construire annotation du titre
+    annotation = []
+    if stats_total["significant"]:  annotation.append("Total ↑")
+    if stats_hommes["significant"]: annotation.append("Hommes ↑")
+    if stats_femmes["significant"]: annotation.append("Femmes ↑")
+
+    annotation_txt = (
+        " | Augmentation significative : " + ", ".join(annotation)
+        if annotation
+        else ""
+    )
+
+    # ---- Graphique final -----------------------------------------------------
     fig = px.line(
         df_plot,
         x="annee",
@@ -56,9 +105,27 @@ def graphique1(df, patho1, age=["tous âges"], dept=["999"], region=[99]):
     fig.update_layout(
         template="plotly_white",
         legend_title_text="Sexe",
-        yaxis=dict(range=[0, df_plot["prev"].max() * 1.05 if not df_plot["prev"].empty else 1])
+        yaxis=dict(range=[0, df_plot["prev"].max() * 1.05])
     )
-
+    fig.update_layout(
+        template="plotly_white",
+        legend_title_text="Sexe",
+        yaxis=dict(range=[0, df_plot["prev"].max() * 1.05])
+ 
+    )# ---- Annotation sous l’axe des X ----
+    fig.add_annotation(
+        xref="paper",
+        yref="paper",
+        x=0.5,
+        y=-0.3,   # Ajuste plus bas ou plus haut si besoin
+        showarrow=False,
+         text=(
+        "Augmentation significative : " + ", ".join(annotation)
+        if annotation else "Pas d’augmentation significative détectée"
+    ),
+    font=dict(size=12),
+    )
+    
     return fig
 
 # ---------------------------
@@ -174,12 +241,12 @@ def graphique3(df, patho1, dept=["999"], region=[99],annee_sel=2022):
 # ---------------------------
 def graphique4(df, patho1, dept=["999"], region=[99], annee_sel=2022):
     """
-    Histogramme des patho_niv2 (en abscisse) avec somme de Ntop (en ordonnée)
+    Histogramme des patho_niv2_simplifie (en abscisse) avec somme de Ntop (en ordonnée)
     pour une pathologie de niveau 1, une année et des filtres géographiques.
     """
 
     # --- Correction du slice de colonnes ---
-    colonnes = ["annee",  "patho_niv1", "patho_niv2", "dept", "region", "libelle_classe_age",  "sexe", "Ntop"
+    colonnes = ["annee",  "patho_niv1", "patho_niv2_simplifie", "dept", "region", "libelle_classe_age",  "sexe", "Ntop"
     ]
     df_reduit = df[colonnes].copy()
 
@@ -192,9 +259,9 @@ def graphique4(df, patho1, dept=["999"], region=[99], annee_sel=2022):
         (df_reduit["dept"].isin(dept)) &
         (df_reduit["region"].isin(region)) &
         (df_reduit["Ntop"].notna()) &
-        (df_reduit["patho_niv2"].notna()) & 
-        (df_reduit["patho_niv2"] != "") & 
-        (df_reduit["patho_niv2"].str.lower() != "nan") & 
+        (df_reduit["patho_niv2_simplifie"].notna()) & 
+        (df_reduit["patho_niv2_simplifie"] != "") & 
+        (df_reduit["patho_niv2_simplifie"].str.lower() != "nan") & 
         (df_reduit["libelle_classe_age"] != "tous âges") &
         (df_reduit["annee"] == annee_sel)
       
@@ -203,7 +270,7 @@ def graphique4(df, patho1, dept=["999"], region=[99], annee_sel=2022):
     # --- Regroupement par patho_niv2 ---
     df_grouped = (
         
-        df_filtered.groupby("patho_niv2", as_index=False)
+        df_filtered.groupby("patho_niv2_simplifie", as_index=False)
         .agg({"Ntop": "sum"})
         .sort_values(by="Ntop", ascending=False)
     )
@@ -211,10 +278,10 @@ def graphique4(df, patho1, dept=["999"], region=[99], annee_sel=2022):
     # --- Histogramme Plotly ---
     fig = px.bar(
         df_grouped,
-        x="patho_niv2",
+        x="patho_niv2_simplifie",
         y="Ntop",
-        labels={"patho_niv2": "Pathologie niveau 2", "Ntop": "Nombre de cas"},
-        title=f"Somme de Ntop par patho_niv2 – {patho1} ({annee_sel})"
+        labels={"patho_niv2_simplifie": "Pathologie niveau 2", "Ntop": "Nombre de cas"},
+        title=f"Somme de Ntop par patho_niv2_simplifie – {patho1} ({annee_sel})"
     )
 
     fig.update_layout(xaxis_tickangle=45)
