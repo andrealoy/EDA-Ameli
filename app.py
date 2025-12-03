@@ -10,28 +10,11 @@ import plotly.express as px
 def load_data():
     df = pd.read_pickle("df_nettoye.pkl")
     df["patho_niv1"] = df["patho_niv1"].astype(str).str.strip()
-    df["patho_niv2"] = df["patho_niv2"].astype(str).str.strip()
+    df["patho_niv2_simplifie"] = df["patho_niv2_simplifie"].astype(str).str.strip()
     return df
 
 df = load_data()
 st.set_page_config(layout="wide")
-
-# ---------------------------
-# Slider année à côté du titre
-# ---------------------------
-annees_disponibles = sorted(df["annee"].unique())
-col_title, col_slider = st.columns([3, 1])
-with col_title:
-    st.markdown("### Visualisation prévalence par sexe et année")
-with col_slider:
-    annee_selectionnee = st.slider(
-        "",
-        min_value=int(min(annees_disponibles)),
-        max_value=int(max(annees_disponibles)),
-        value=int(max(annees_disponibles)),
-        step=1
-    )
-
 
 # ---------------------------
 # Selectbox unique pour patho1
@@ -68,18 +51,16 @@ patho1_a_afficher_graph4 = st.session_state["patho1_graph4"]
 df_graph4 = df[df["patho_niv1"] == patho1_a_afficher_graph4]
 
 # ---------------------------
-# df_graph pour les autres graphiques (dépend de patho1 et patho2)
+# df_graph pour les autres graphiques (dépend de patho1 et patho2 simplifié)
 # ---------------------------
 df_graph2 = df[df["patho_niv1"] == patho1]
 
-# Sélection patho2
-sous_pathos_disponibles = sorted(df_graph2["patho_niv2"].dropna().unique())
-patho2 = st.multiselect("Choisir une ou plusieurs sous-pathologies (niv2)", sous_pathos_disponibles)
+# Sélection patho2 simplifié
+sous_pathos_disponibles = sorted(df_graph2["patho_niv2_simplifie"].dropna().unique())
+patho2 = st.multiselect("Choisir une ou plusieurs sous-pathologies (niv2 simplifié)", sous_pathos_disponibles)
 
 if patho2:
-    df_graph2 = df_graph2[df_graph2["patho_niv2"].isin(patho2)]
-
-
+    df_graph2 = df_graph2[df_graph2["patho_niv2_simplifie"].isin(patho2)]
 
 # ---------------------------
 # Vérification des données
@@ -92,6 +73,8 @@ else:
 # ---------------------------
 # Affichage des graphiques
 # ---------------------------
+st.header("Visualisation prévalence par sexe et année")
+
 col1, col2 = st.columns([3, 3], gap="medium")
 with col1:
     st.plotly_chart(graphique1(df_graph1, patho1_a_afficher_graph1), use_container_width=True)  # figée patho2
