@@ -20,7 +20,33 @@ st.set_page_config(layout="wide")
 # Tire et zone de texte
 # ---------------------------
 st.header("Analyse des pathologies")
-st.write("""L’application permet de sélectionner une pathologie principale (niv1) ainsi que ses sous-pathologies (niv2), puis affiche les données sous forme de graphiques interactifs par sexe et par année. Elle facilite ainsi l’exploration et la synthèse des pathologies, offrant un suivi rapide et clair des tendances et prévalences en France entre 2015 et 2023.""")
+
+
+st.write("""
+L’application permet de sélectionner une **pathologie principale (niv1)** ainsi que ses **sous-pathologies simplifiées (niv2)**, 
+puis affiche les données sous forme de **graphiques interactifs** par sexe et par année. Elle permet un suivi clair des tendances et prévalences en France **entre 2015 et 2023**.""")
+
+
+### 📊 Informations générales sur le jeu de données
+with st.expander("Informations générales sur le jeu de données", expanded=False):
+    st.markdown("""
+**📌 Source et origine :**  
+  *Data.gouv — Dataset Pathologies : effectif de patients par pathologie, sexe, classe d'âge et territoire*  
+  Produit par la **Caisse nationale de l'Assurance Maladie (Cnam)**.
+
+- **🔢 Nombre d’observations :** **5 216 400**
+
+- **🧱 Nombre de variables :** **16**
+
+- **🔠 Types de variables :**  
+  - `float64` : 3  
+  - `int64` : 4  
+  - `object` : 9
+
+- **❗ Nombre de valeurs manquantes par variable :** *(voir tableau ci-dessous)*
+
+---
+""")
 
 
 # ---------------------------
