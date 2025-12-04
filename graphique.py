@@ -281,7 +281,7 @@ def graphique4(df, patho1, dept=["999"], region=[99], annee_sel=2022):
         x="patho_niv2_simplifie",
         y="Ntop",
         labels={"patho_niv2_simplifie": " ", "Ntop": "Nombre de cas"},
-        title=f"{patho1} ({annee_sel}) Répartition du nombre de cas en fonction du type de sous pathologie "
+        title=f"{patho1} Répartition du nombre de cas en fonction du type de sous pathologie ({annee_sel})"
     )
 
     fig.update_layout(xaxis_tickangle=45)
