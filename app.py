@@ -75,14 +75,14 @@ df_graph1 = df[df["patho_niv1"] == patho1_a_afficher_graph1]
 # ---------------------------
 # Variable figée pour graphique4 A suuprimer plus tard
 # ---------------------------
-# if "patho1_graph4" not in st.session_state:
-#     st.session_state["patho1_graph4"] = patho1
-# if st.session_state["patho1_graph4"] != patho1:
-#     st.session_state["patho1_graph4"] = patho1
-# patho1_a_afficher_graph4 = st.session_state["patho1_graph4"]
+if "patho1_graph4" not in st.session_state:
+    st.session_state["patho1_graph4"] = patho1
+if st.session_state["patho1_graph4"] != patho1:
+    st.session_state["patho1_graph4"] = patho1
+patho1_a_afficher_graph4 = st.session_state["patho1_graph4"]
 
-# # df_graph pour graphique4 (ne dépend que de patho1)
-# df_graph4 = df[df["patho_niv1"] == patho1_a_afficher_graph4]
+# df_graph pour graphique4 (ne dépend que de patho1)
+df_graph4 = df[df["patho_niv1"] == patho1_a_afficher_graph4]
 
 # ---------------------------
 # df_graph pour les autres graphiques (dépend de patho1 et patho2 simplifié)
