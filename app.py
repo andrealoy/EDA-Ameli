@@ -1,172 +1,125 @@
 import streamlit as st
-import pandas as pd
-from graphique import graphique1, graphique2, graphique3, graphique4, graphique_grand
-import plotly.express as px
+import pandas as pd    
+import graphs as gr
+import map as mp
 
-# ---------------------------
-# Config page 
-# ---------------------------
+# ---------------------------------------
+# 🔹 Titre de l'application
+# ---------------------------------------
+st.title("Explorateur de pathologies – Données Santé")
+
+# ---------------------------------------
+# 🔹 Config
+# ---------------------------------------
 st.set_page_config(layout="wide")
 
-# ---------------------------
-# Charger DataFrame
-# ---------------------------
+# ---------------------------------------
+# 🔹 Chargement du dataset (cache pour vitesse)
+# ---------------------------------------
 @st.cache_data
 def load_data():
-    df = pd.read_pickle("df_nettoye.pkl")
-    df["patho_niv1"] = df["patho_niv1"].astype(str).str.strip()
-    df["patho_niv2_simplifie"] = df["patho_niv2_simplifie"].astype(str).str.strip()
-    return df
+    return pd.read_parquet("datasets/df_cleaned.parquet")
 
 df = load_data()
 
-# ---------------------------
-# Titre et zone de texte
-# ---------------------------
-st.header("🔬 Analyse des pathologies")
+# ---------------------------------------
+# 🔹 SIDEBAR : choix de la pathologie et de l'année
+# ---------------------------------------
+# Sidebar – choix de la pathologie et année (slider)
+st.sidebar.header("Filtres")
 
-st.write("""
-L’application permet de sélectionner une **pathologie principale (niv1)** ainsi que ses **sous-pathologies simplifiées (niv2)**, 
-puis affiche les données sous forme de **graphiques interactifs** par sexe et par année. Elle permet un suivi clair des tendances et prévalences en France **entre 2015 et 2023**.""")
+patho_list = sorted(df["patho_niv1"].dropna().unique())
+annee_min = int(df["annee"].min())
+annee_max = int(df["annee"].max())
 
-### 📊 Informations générales sur le jeu de données
-with st.expander("Informations générales sur le jeu de données", expanded=False):
-    st.markdown("""
-**📌 Source et origine :**  
-  *Data.gouv — Dataset Pathologies : effectif de patients par pathologie, sexe, classe d'âge et territoire*  
-  Produit par la **Caisse nationale de l'Assurance Maladie (Cnam)**.
+selected_patho = st.sidebar.selectbox("Sélectionner une pathologie (niv1)", patho_list)
 
-- **🔢 Nombre d’observations :** **5 216 400**
+all_years = st.sidebar.checkbox("Toutes les années", value=False)
 
-- **🧱 Nombre de variables :** **16**
-
-- **🔠 Types de variables :**  
-  - `float64` : 3  
-  - `int64` : 4  
-  - `object` : 9
-
-- **Nombre total de données :** **78 837 770**
-                
-- **❗ Nombre de valeurs manquantes total :** **4 624 630**
-
-- **Interprétation mathématique :** Le profil des courbes a été déterminé en effectuant une régression linéaire afin d’obtenir la pente, la p-value et le pourcentage de variation, permettant ainsi de conclure sur l’évolution de la variable au fil du temps. 
-
----
-""")
-
-# ---------------------------
-# Selectbox unique pour patho1
-# ---------------------------
-toutes_les_pathos = sorted(df["patho_niv1"].dropna().unique())
-patho1 = st.selectbox("Choisir une pathologie (niv1)", toutes_les_pathos)
-
-# ---------------------------
-# Variable figée pour graphique1
-# ---------------------------
-if "patho1_graph1" not in st.session_state:
-    st.session_state["patho1_graph1"] = patho1
-if st.session_state["patho1_graph1"] != patho1:
-    st.session_state["patho1_graph1"] = patho1
-patho1_a_afficher_graph1 = st.session_state["patho1_graph1"]
-
-# df_graph pour graphique1 (ne dépend que de patho1)
-df_graph1 = df[df["patho_niv1"] == patho1_a_afficher_graph1]
-
-# ---------------------------
-# Variable figée pour graphique4 A suuprimer plus tard
-# ---------------------------
-if "patho1_graph4" not in st.session_state:
-    st.session_state["patho1_graph4"] = patho1
-if st.session_state["patho1_graph4"] != patho1:
-    st.session_state["patho1_graph4"] = patho1
-patho1_a_afficher_graph4 = st.session_state["patho1_graph4"]
-
-# df_graph pour graphique4 (ne dépend que de patho1)
-df_graph4 = df[df["patho_niv1"] == patho1_a_afficher_graph4]
-
-# ---------------------------
-# df_graph pour les autres graphiques (dépend de patho1 et patho2 simplifié)
-# ---------------------------
-df_graph2 = df[df["patho_niv1"] == patho1]
-
-# Sélection patho2 simplifié
-sous_pathos_disponibles = sorted(df_graph2["patho_niv2_simplifie"].dropna().unique())
-patho2 = st.multiselect("Choisir une ou plusieurs sous-pathologies (niv2)", sous_pathos_disponibles)
-
-if patho2:
-    df_graph2 = df_graph2[df_graph2["patho_niv2_simplifie"].isin(patho2)]
-
-# ---------------------------
-# bornes du slider à partir des années présentes dans le df
-# (robuste si colonne année est string)
-# ---------------------------
-annee_series = pd.to_numeric(df["annee"], errors="coerce").dropna().astype(int)
-if not annee_series.empty:
-    annee_min = int(annee_series.min())
-    annee_max = int(annee_series.max())
+if all_years:
+    selected_year = "Toutes"
 else:
-    # valeurs par défaut sûres
-    annee_min, annee_max = 2015, 2023
+    selected_year = st.sidebar.slider(
+        "Sélectionner une année",
+        min_value=annee_min,
+        max_value=annee_max,
+        value=annee_max,     # par défaut = dernière année
+        step=1
+    )
 
-# --- SLIDER placé juste après la sélection de patho2 ---
-annee_sel = st.slider(
-    "Choisir l'année",
-    min_value=annee_min,
-    max_value=annee_max,
-    value=annee_max,
-    step=1,
-    key="annee_sel"
-)
+# ---------------------------------------
+# 🔹 Filtrer le dataset selon les choix
+# ---------------------------------------
+df_filtered = df[
+    (df["patho_niv1"] == selected_patho)
+]
 
-# --- FILTRES GEO (éventuels) ---
-dept = ["999"]
-region = [99]
+if all_years:
+    df_filtered_year = df_filtered
+else:
+    df_filtered_year = df_filtered[pd.to_numeric(df_filtered["annee"], errors="coerce") == selected_year]
 
-st.subheader(f"Visualisation des données {patho1} / {patho2} pour {annee_sel}")
+# ---------------------------------------
+# 🔹 Affichage
+# ---------------------------------------
+st.header(f"{len(df_filtered_year):,} cas pour : {selected_patho} en France en {selected_year}")
 
-# ---------------------------
-# Helper : appeler la fonction de graphique en essayant d'envoyer annee_sel si possible
-# ---------------------------
-def call_with_optional_year(func, *args, year=None):
-    """
-    Essaie d'appeler func(..., annee_sel=year). Si la signature ne le permet pas,
-    retombe sur func(...).
-    """
-    if year is None:
-        return func(*args)
-    try:
-        # premier essai : appeler en passant annee_sel nommé
-        return func(*args, annee_sel=year)
-    except TypeError:
-        # si la fonction ne prend pas annee_sel, on l'appelle sans
-        return func(*args)
+# ---------------------------------------
+# 🔹 Génération des graphiques
+# ---------------------------------------
 
-# ---- Grille 2x2 pour les 4 graphiques (placeholders) ----
-col1, col2 = st.columns([3, 3], gap="medium")
+# Données agrégées pour l'analyse temporelle
+df_grouped = gr.group_by_year_and_calculate_mean_prev(df_filtered)
+
+# Graphiques de prévalence par sexe (utilise df_filtered pour toutes les années)
+fig_prev_femmes = gr.plot_prevalence_sex(df_filtered, sexcode=2)
+fig_prev_hommes = gr.plot_prevalence_sex(df_filtered, sexcode=1)
+fig_diff_prev_sexe = gr.plot_prevalence_difference_sex(df_filtered)
+
+# Graphiques temporels (COVID-19)
+fig_prev_time = gr.plot_real_vs_expected_prevalence(df_grouped)
+
+# Graphiques pour l'année sélectionnée (utilise df_filtered_year)
+fig_repartition_sexe = gr.plot_repartition_by_sex(df_filtered_year)
+fig_age_distribution = gr.plot_age_pyramid(df_filtered_year)
+fig_subpatho_distribution = gr.repartition_by_subpathology(df_filtered, selected_patho, selected_year)
+
+# Carte géographique
+deck = mp.plot_heatmap_by_department(df_filtered_year, selected_patho, selected_year)
+
+# ---------------------------------------
+# 🔹 Affichage des visualisations
+# ---------------------------------------
+
+# Section 1 : Analyse par sexe
+st.markdown("### Évolution de la prévalence par sexe")
+col1, col2, col3 = st.columns(3)
 with col1:
-    placeholder_g1 = st.empty()
+    st.plotly_chart(fig_prev_femmes, use_container_width=True)
 with col2:
-    placeholder_g2 = st.empty()
-
-col3, col4 = st.columns([3, 3], gap="medium")
+    st.plotly_chart(fig_prev_hommes, use_container_width=True)
 with col3:
-    placeholder_g3 = st.empty()
-with col4:
-    placeholder_g4 = st.empty()
+    st.plotly_chart(fig_repartition_sexe, use_container_width=False)
 
-# ---- Générer tous les graphiques (le wrapper gère si la fonction accepte annee_sel ou pas) ----
-fig1 = call_with_optional_year(graphique1, df_graph1, patho1_a_afficher_graph1, year=annee_sel)
-fig2 = call_with_optional_year(graphique2, df_graph2, patho1, year=annee_sel)
-fig3 = call_with_optional_year(graphique3, df_graph2, patho1, year=annee_sel)
-fig4 = call_with_optional_year(graphique4, df_graph4, patho1_a_afficher_graph4, year=annee_sel)
+# Graphique de différence H/F
+st.plotly_chart(fig_diff_prev_sexe, use_container_width=True)
 
-# ---- Afficher les graphiques ----
-placeholder_g1.plotly_chart(fig1, use_container_width=True)
-placeholder_g2.plotly_chart(fig2, use_container_width=True)
-placeholder_g3.plotly_chart(fig3, use_container_width=True)
-placeholder_g4.plotly_chart(fig4, use_container_width=True)
+# Section 2 : Analyse temporelle
+st.markdown("### Évolution de la prévalence par année avec et sans COVID-19")
+st.plotly_chart(fig_prev_time, use_container_width=True)
 
-# Grand graphique plein écran (on essaye de lui passer l'année aussi)
-st.subheader("Grand graphique de synthèse")
-fig_grand = call_with_optional_year(graphique_grand, df_graph2, patho1, year=annee_sel)
-st.plotly_chart(fig_grand, use_container_width=True)
+# Section 3 : Distribution par âge
+st.markdown("### Distribution de la prévalence par âge")
+st.plotly_chart(fig_age_distribution, use_container_width=True)
+
+# Section 4 : Sous-pathologies
+st.markdown("### Répartition des sous-pathologies")
+st.plotly_chart(fig_subpatho_distribution, use_container_width=True)
+
+# Section 5 : Carte géographique
+st.markdown("### Heatmap des cas par département")
+st.pydeck_chart(deck)
+
+# ---------------------------------------
+# 🔹 Fin de l'application
+# ---------------------------------------
