@@ -2,11 +2,7 @@ import streamlit as st
 import pandas as pd    
 import graphs as gr
 import map as mp
-
-# ---------------------------------------
-# 🔹 Titre de l'application
-# ---------------------------------------
-st.title("Explorateur de pathologies – Données Santé")
+import stats as stt
 
 # ---------------------------------------
 # 🔹 Config
@@ -21,6 +17,84 @@ def load_data():
     return pd.read_parquet("datasets/df_cleaned.parquet")
 
 df = load_data()
+
+# -----------------------------------------------------------
+# 🔹 Titre de l'application et présentation du jeu de données
+# -----------------------------------------------------------
+
+
+st.title("Explorateur de pathologies – Données Santé")
+with st.container():
+    col1, col2 = st.columns([3,2])
+    
+    with col1:
+        st.markdown("""
+        ## 🩺 Analyse des pathologies en France
+        Données issues de sources publiques (Ameli)
+        """)
+
+    with col2:
+        st.markdown("### 📌 Aperçu du dataset")
+        st.metric("Rows", f"{df.shape[0]:,}")
+        st.metric("Columns", f"{df.shape[1]:,}")
+
+st.expander("Résumé du DataFrame").markdown("""
+# ## 📊 **Résumé du DataFrame**
+
+# ### **Structure générale**
+# - **16 colonnes**, ~**636.8 MB**
+# - Types : **int64 (4)**, **float64 (3)**, **object (9)**
+# - Dataset volumineux avec beaucoup de variables catégorielles.
+
+# ### **Description des variables**
+# - **annee (int64)** : année d’observation  
+# - **patho_niv1/2/3 (object)** : hiérarchie de pathologies  
+# - **top (object)** : code topographique  
+# - **cla_age_5 (object)** : classe d’âge (tranches de 5 ans)  
+# - **sexe (int64)** : code sexe  
+# - **region (int64)** : code région  
+# - **dept (object)** : département  
+# - **Ntop (float64)** : nombre de cas observés  
+# - **Npop (int64)** : population  
+# - **prev (float64)** : prévalence  
+# - **Niveau prioritaire (object)** : catégorie de priorité  
+# - **libelle_classe_age / libelle_sexe (object)** : libellés descriptifs  
+# - **tri (float64)** : valeur de tri / score
+
+# ### **Valeurs manquantes**
+# - **patho_niv2 : 544 320**  
+# - **patho_niv3 : 1 179 360**  
+# - **Ntop : 1 382 435**  
+# - **prev : 1 382 435**  
+# - **Niveau prioritaire : 68 040**  
+# - **tri : 68 040**  
+# - Colonnes sans NaN : **annee, cla_age_5, sexe, region, dept, libelle_classe_age, libelle_sexe**
+
+# ### **Points clés**
+# - Structure hiérarchique pathologique : **niv1 complet**, niv2 et niv3 partiellement définis.  
+# - **Ntop** et **prev** manquent ensemble → calcul de la prévalence impossible pour ces enregistrements. 
+# - Beaucoup de colonnes object → **conversion en `category`** pour réduire l’usage mémoire.  
+# """)
+# -----------------------------------------------------------
+# 🔹 Statistiques
+# -----------------------------------------------------------
+colA, colB = st.columns([2, 1])  # colonne texte + colonne metrics rapides
+
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    stt.display_demographic_metrics(df)
+
+with col2:
+    stt.display_geographic_metrics(df)
+
+with col3:
+    stt.display_pathology_metrics(df)
+
+with col4:
+    stt.display_numeric_metrics(df)
+
 
 # ---------------------------------------
 # 🔹 SIDEBAR : choix de la pathologie et de l'année
@@ -46,6 +120,7 @@ else:
         value=annee_max,     # par défaut = dernière année
         step=1
     )
+
 
 # ---------------------------------------
 # 🔹 Filtrer le dataset selon les choix
