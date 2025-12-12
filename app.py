@@ -3,6 +3,12 @@ import pandas as pd
 import graphs as gr
 import map as mp
 import stats as stt
+import matplotlib.pyplot as plt
+import numpy as np 
+from sklearn.feature_extraction.text import TfidfVectorizer
+from collections import defaultdict 
+from wordcloud import WordCloud
+
 
 # ---------------------------------------
 # 🔹 Config
@@ -16,7 +22,27 @@ st.set_page_config(layout="wide")
 def load_data():
     return pd.read_parquet("datasets/df_cleaned.parquet")
 
+@st.cache_data
+def load_texts():
+    with open("datasets/article.txt", "r", encoding="utf-8") as f:
+        raw = f.read()
+    with open("datasets/article_cleaned.txt", "r", encoding="utf-8") as f:
+        clean = f.read().lower()
+    return raw, clean
+
+@st.cache_data
+def compute_tfidf(text, max_features=100):
+    vectorizer = TfidfVectorizer(
+        max_features=max_features
+    )
+    X = vectorizer.fit_transform([text])
+    words = vectorizer.get_feature_names_out()
+    scores = X.toarray().flatten()
+    return dict(zip(words, scores))
+
 df = load_data()
+raw_text,cleaned_text = load_texts()
+
 
 # -----------------------------------------------------------
 # 🔹 Titre de l'application et présentation du jeu de données
@@ -195,6 +221,58 @@ st.plotly_chart(fig_subpatho_distribution, use_container_width=True)
 st.markdown("### Heatmap des cas par département")
 st.pydeck_chart(deck)
 
+
+
 # ---------------------------------------
-# 🔹 Fin de l'application
+# 🔹 Partie Text-Mining
 # ---------------------------------------
+
+st.markdown("---")
+st.header("📝 Analyse Text-Mining – Article de presse")
+    
+with st.expander("Article de presse - Analyse Text-Mining"):
+    st.write(raw_text)
+
+col1, col2 = st.columns([1,2])
+
+with col1:
+    max_words = st.slider(
+        "Nombre de mots clés",
+        min_value=20,
+        max_value=200,
+        value=80,
+        step=10
+    )
+
+with col2:
+    show_cleaned = st.checkbox("Afficher le texte nettoyé")
+
+if show_cleaned:
+    st.text_area("Texte nettoyé", cleaned_text, height=200)
+    
+tfidf_dict = compute_tfidf(cleaned_text, max_words)
+
+wordcloud = WordCloud(
+    width=800,
+    height=400,
+    background_color="white"
+).generate_from_frequencies(tfidf_dict)
+
+fig, ax = plt.subplots(figsize=(10, 5))
+ax.imshow(wordcloud, interpolation="bilinear")
+ax.axis("off")
+
+st.pyplot(fig)
+st.subheader("📊 Mots les plus significatifs (TF-IDF)")
+
+df_tfidf = (
+    pd.DataFrame(tfidf_dict.items(), columns=["Mot", "Score"])
+    .sort_values("Score", ascending=False)
+)
+
+st.dataframe(df_tfidf.head(20), use_container_width=True)
+
+
+
+    
+  
