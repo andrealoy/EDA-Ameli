@@ -64,43 +64,45 @@ with st.container():
         st.metric("Rows", f"{df.shape[0]:,}")
         st.metric("Columns", f"{df.shape[1]:,}")
 
-st.expander("Résumé du DataFrame").markdown("""
-# ## 📊 **Résumé du DataFrame**
+with st.expander("Résumé du DataFrame"):
+    st.markdown("""
+## 📊 **Résumé du DataFrame**
 
-# ### **Structure générale**
-# - **16 colonnes**, ~**636.8 MB**
-# - Types : **int64 (4)**, **float64 (3)**, **object (9)**
-# - Dataset volumineux avec beaucoup de variables catégorielles.
+### **Structure générale**
+- **16 colonnes**, ~**636.8 MB**
+- Types : **int64 (4)**, **float64 (3)**, **object (9)**
+- Dataset volumineux avec beaucoup de variables catégorielles
 
-# ### **Description des variables**
-# - **annee (int64)** : année d’observation  
-# - **patho_niv1/2/3 (object)** : hiérarchie de pathologies  
-# - **top (object)** : code topographique  
-# - **cla_age_5 (object)** : classe d’âge (tranches de 5 ans)  
-# - **sexe (int64)** : code sexe  
-# - **region (int64)** : code région  
-# - **dept (object)** : département  
-# - **Ntop (float64)** : nombre de cas observés  
-# - **Npop (int64)** : population  
-# - **prev (float64)** : prévalence  
-# - **Niveau prioritaire (object)** : catégorie de priorité  
-# - **libelle_classe_age / libelle_sexe (object)** : libellés descriptifs  
-# - **tri (float64)** : valeur de tri / score
+### **Description des variables**
+- **annee (int64)** : année d’observation  
+- **patho_niv1 / patho_niv2 / patho_niv3 (object)** : hiérarchie de pathologies  
+- **top (object)** : code topographique  
+- **cla_age_5 (object)** : classe d’âge (tranches de 5 ans)  
+- **sexe (int64)** : code sexe  
+- **region (int64)** : code région  
+- **dept (object)** : département  
+- **Ntop (float64)** : nombre de cas observés  
+- **Npop (int64)** : population  
+- **prev (float64)** : prévalence  
+- **Niveau prioritaire (object)** : catégorie de priorité  
+- **libelle_classe_age / libelle_sexe (object)** : libellés descriptifs  
+- **tri (float64)** : valeur de tri / score
 
-# ### **Valeurs manquantes**
-# - **patho_niv2 : 544 320**  
-# - **patho_niv3 : 1 179 360**  
-# - **Ntop : 1 382 435**  
-# - **prev : 1 382 435**  
-# - **Niveau prioritaire : 68 040**  
-# - **tri : 68 040**  
-# - Colonnes sans NaN : **annee, cla_age_5, sexe, region, dept, libelle_classe_age, libelle_sexe**
+### **Valeurs manquantes**
+- **patho_niv2** : 544 320  
+- **patho_niv3** : 1 179 360  
+- **Ntop** : 1 382 435  
+- **prev** : 1 382 435  
+- **Niveau prioritaire** : 68 040  
+- **tri** : 68 040  
+- Colonnes sans NaN : **annee, cla_age_5, sexe, region, dept, libelle_classe_age, libelle_sexe**
 
-# ### **Points clés**
-# - Structure hiérarchique pathologique : **niv1 complet**, niv2 et niv3 partiellement définis.  
-# - **Ntop** et **prev** manquent ensemble → calcul de la prévalence impossible pour ces enregistrements. 
-# - Beaucoup de colonnes object → **conversion en `category`** pour réduire l’usage mémoire.  
-# """)
+### **Points clés**
+- Structure hiérarchique pathologique : **niv1 complet**, niv2 et niv3 partiellement définis  
+- **Ntop** et **prev** manquent ensemble → calcul de la prévalence impossible  
+- Beaucoup de colonnes `object` → **conversion en `category`** recommandée pour réduire la mémoire
+""")
+
 # -----------------------------------------------------------
 # 🔹 Statistiques
 # -----------------------------------------------------------
@@ -251,7 +253,7 @@ if show_cleaned:
     st.text_area("Texte nettoyé", cleaned_text, height=200)
     
 tfidf_dict = compute_tfidf(cleaned_text, max_words)
-
+bg_color = st.get_option("theme.backgroundColor")
 wordcloud = WordCloud(
     width=800,
     height=400,
